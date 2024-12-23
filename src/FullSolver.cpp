@@ -6,8 +6,6 @@
 
 constexpr int32_t ceilDiv(int32_t val1, int32_t val2) { return (val1 + val2 - 1) / val2; }
 
-
-#ifdef USE_NEW
 uint32_t SolveSequenceResult::getScore() const
 {
     uint32_t score = 0;
@@ -21,20 +19,6 @@ uint32_t SolveSequenceResult::getScore() const
         default: break;
     }
 
-    if (isFreshCustomer)
-    {
-        if (item == Item::MEAT) score += MEAT_COST;
-        score += STATIC_COST;
-        switch (customer)
-        {
-            case CustomerType::MUCHOMON: score += MUCHOMON_WALK_COST; break;
-            case CustomerType::GOBURIMON: score += GOBURIMON_WALK_COST; break;
-            case CustomerType::GOTSUMON: score += GOTSUMON_WALK_COST; break;
-            case CustomerType::WEEDMON: score += WEEDMON_WALK_COST; break;
-            default: break;
-        }
-    }
-
     switch (result)
     {
         case InputResult::ADVANCE: break;
@@ -43,49 +27,25 @@ uint32_t SolveSequenceResult::getScore() const
             if (item == Item::MEDICINE && customer == CustomerType::MUCHOMON) score -= NON_MUCHO_MEDICINE_COST;
             // conditional fall-though
         case InputResult::LEAVE: // fall-through
-        case InputResult::LEAVE_ENDED: score += NON_MUCHO_MEDICINE_COST; break;
+        case InputResult::LEAVE_ENDED:
+            score += NON_MUCHO_MEDICINE_COST;
+            if (item == Item::MEAT) score += MEAT_COST;
+            score += STATIC_COST;
+            switch (customer)
+            {
+                case CustomerType::MUCHOMON: score += MUCHOMON_WALK_COST; break;
+                case CustomerType::GOBURIMON: score += GOBURIMON_WALK_COST; break;
+                case CustomerType::GOTSUMON: score += GOTSUMON_WALK_COST; break;
+                case CustomerType::WEEDMON: score += WEEDMON_WALK_COST; break;
+                default: break;
+            }
+            break;
         case InputResult::CANCEL: break;
         case InputResult::DENY: score += DENY_COST; break;
     }
 
     return score;
 }
-#else
-uint32_t SolveSequenceResult::getScore() const
-{
-    uint32_t score = 0;
-    switch (input)
-    {
-        case Input::NORMAL:
-        case Input::LOWER: score += NON_RAISE_COST;
-        default: break;
-    }
-
-    switch (result)
-    {
-        case InputResult::ADVANCE: score += ADVANCE_COST; break;
-        case InputResult::BUY: // fall-through
-        case InputResult::BUY_ENDED:
-        {
-            // customerCount++;
-            score += BUY_COST;
-            if (item == Item::MEDICINE && customer == CustomerType::MUCHOMON) score -= MUCHOMON_MEDICINE_COST_REDUCTION;
-            break;
-        }
-        case InputResult::LEAVE: // fall-through
-        case InputResult::LEAVE_ENDED:
-            // customerCount++;
-            score += LEAVE_COST;
-            break;
-        case InputResult::CANCEL: score += CANCEL_COST; break;
-        case InputResult::DENY: score += DENY_COST; break;
-    }
-
-    if (item == Item::MEAT) score += MEAT_COST;
-
-    return score;
-}
-#endif
 
 ISolveEntry::ISolveEntry(uint32_t seed, uint32_t advances)
     : shop(seed, advances)
@@ -93,11 +53,10 @@ ISolveEntry::ISolveEntry(uint32_t seed, uint32_t advances)
     for (uint32_t i = 0; i < advances; i++)
     {
         SolveSequenceResult res = {
-            .customer        = CustomerType::INVALID,
-            .item            = Item::INVALID,
-            .input           = Input::CATCH_UP,
-            .result          = InputResult::ADVANCE,
-            .isFreshCustomer = false,
+            .customer = CustomerType::INVALID,
+            .item     = Item::INVALID,
+            .input    = Input::CATCH_UP,
+            .result   = InputResult::ADVANCE,
         };
         currentScore += ADVANCE_COST;
         inputs.push_back(res);
@@ -108,102 +67,47 @@ uint32_t ISolveEntry::getScore() const { return currentScore; };
 uint32_t ISolveEntry::getCustomerCount() const { return customerCount; }
 std::vector<SolveSequenceResult> ISolveEntry::getInputs() const { return inputs; }
 MonochromeShop ISolveEntry::getShop() const { return shop; }
-bool ISolveEntry::operator<(const ISolveEntry& other) const { return currentScore > other.getScore(); }
+bool ISolveEntry::operator<(const ISolveEntry& other) const { return best_possible_score < other.best_possible_score; }
 
-#ifdef USE_NEW
 uint32_t FullSolveEntry::getBestPossibleScore() const
 {
-    const auto MAXIMUM_PROFIT = getProfit(Item::MEDICINE, Offer::PLUS_50);
-    uint32_t currentScore     = getScore();
+    constexpr int32_t BUY_COST    = STATIC_COST + MUCHOMON_WALK_COST + RAISE_COST;
+    constexpr int32_t LEAVE_COST  = STATIC_COST + WEEDMON_WALK_COST + RAISE_COST + NON_MUCHO_MEDICINE_COST;
+    constexpr auto MAXIMUM_PROFIT = 800;
+
+    uint32_t currentScore = getScore();
     if (shop.hasEnded()) return currentScore;
 
     int32_t remainingProfit    = REQUIRED_PROFITS - shop.getProfits();
     int32_t remainingCustomers = shop.getRemainingCustomers() + 1;
     int32_t maxProfit          = getProfit(shop.getCustomer().item, Offer::PLUS_50);
     auto minMedicine           = ceilDiv(remainingProfit, MAXIMUM_PROFIT);
-    auto minMedicine2          = ceilDiv(remainingProfit - maxProfit, MAXIMUM_PROFIT);
-
-    // current sale could never reduce required buys, so assume leave instead
-    // if (minMedicine2 == minMedicine) remainingCustomers--;
 
     // we can't get enough profit anymore -> dead path
-    if (minMedicine2 > remainingCustomers) return IMPOSSIBLE_SCORE;
-
-    remainingCustomers -= minMedicine2;
-    uint32_t newScore = currentScore;
-    // newScore += STATIC_COST + MUCHOMON_WALK_COST + RAISE_COST;
-
-    newScore += minMedicine2 * (STATIC_COST + MUCHOMON_WALK_COST + RAISE_COST);
-    newScore += (remainingCustomers / 2) * (STATIC_COST + WEEDMON_WALK_COST + RAISE_COST + NON_MUCHO_MEDICINE_COST);
-    newScore += (remainingCustomers % 2) * (STATIC_COST + MUCHOMON_WALK_COST + RAISE_COST);
-
-#    ifdef DEBUG
-    if (newScore < last_score) { std::cout << last_score << " " << newScore << "\n"; }
-#    endif
-    return newScore;
-}
-
-#else
-
-uint32_t FullSolveEntry::getBestPossibleScore() const
-{
-    uint32_t currentScore = getScore();
-    if (shop.hasEnded()) return currentScore;
-
-    int32_t remainingProfit     = REQUIRED_PROFITS - shop.getProfits();
-    uint32_t remainingCustomers = shop.getRemainingCustomers() + 1;
-    remainingProfit -= getProfit(shop.getCustomer().item, Offer::PLUS_50);
-    auto minMedicine = ceilDiv(remainingProfit, getProfit(Item::MEDICINE, Offer::PLUS_50));
-
     if (minMedicine > remainingCustomers) return IMPOSSIBLE_SCORE;
 
     remainingCustomers -= minMedicine;
     uint32_t newScore = currentScore;
-    newScore += minMedicine * (BUY_COST - MUCHOMON_MEDICINE_COST_REDUCTION);
-    if (shop.getCustomer().item == Item::MEAT) newScore += MEAT_COST;
     newScore += (remainingCustomers / 2) * LEAVE_COST;
-    newScore += (remainingCustomers % 2) * (BUY_COST - MUCHOMON_MEDICINE_COST_REDUCTION);
-
-#    ifdef DEBUG
-    if (newScore < last_score) { std::cout << last_score << " " << newScore << "\n"; }
-#    endif
+    newScore += (minMedicine + remainingCustomers % 2) * BUY_COST;
 
     return newScore;
 }
-#endif
 
 FullSolveEntry::FullSolveEntry(uint32_t seed, uint32_t advances)
     : ISolveEntry(seed, advances)
 {
+    best_possible_score = getBestPossibleScore();
 }
 
 FullSolveEntry::FullSolveEntry(const FullSolveEntry& previous, Input input)
     : ISolveEntry(previous)
 {
-#ifdef DEBUG
-    last_score = previous.getBestPossibleScore();
-#endif
-
     SolveSequenceResult res;
-    res.input           = input;
-    res.customer        = shop.getCustomer().type;
-    res.item            = shop.getCustomer().item;
-    res.result          = shop.input(input);
-    res.isFreshCustomer = true;
-
-    if (!previous.inputs.empty())
-    {
-        switch (previous.inputs.rbegin()->result)
-        {
-            case InputResult::ADVANCE:
-            case InputResult::BUY_ENDED:
-            case InputResult::LEAVE_ENDED:
-            case InputResult::BUY:
-            case InputResult::LEAVE: res.isFreshCustomer = true; break;
-
-            default: res.isFreshCustomer = false; break;
-        }
-    }
+    res.input    = input;
+    res.customer = shop.getCustomer().type;
+    res.item     = shop.getCustomer().item;
+    res.result   = shop.input(input);
 
     currentScore += res.getScore();
 
@@ -216,6 +120,7 @@ FullSolveEntry::FullSolveEntry(const FullSolveEntry& previous, Input input)
         default: break;
     }
     inputs.push_back(res);
+    best_possible_score = getBestPossibleScore();
 }
 
 std::vector<FullSolveEntry> FullSolveEntry::next(BestResult& best_result) const
@@ -227,9 +132,8 @@ std::vector<FullSolveEntry> FullSolveEntry::next(BestResult& best_result) const
 
         return {};
     }
-    if (inputs.size() > MAX_DEPTH) return {};
 
-    if (getBestPossibleScore() >= best_result.getScore()) { return {}; }
+    if (best_possible_score >= best_result.getScore()) { return {}; }
 
     std::vector<FullSolveEntry> entries;
 

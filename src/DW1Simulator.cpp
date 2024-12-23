@@ -77,41 +77,19 @@ std::string convertItem(Item type)
     return "SOMETHING BROKE";
 }
 
-/*
-    1. set upper limit for depth (30)
-    2. do all iterations for depth N (10), abort when max depth is reached,
-       the end is reached or the best possible score is higher than the best
-    3. sort by score
-    4. pick lowest score, go back to 2 until either max depth is reached, the
-
-
-
-
-    0. pick lowest priority score from list
-    1. perform NextInputs on it
-    2. if result is "ended", compare with best score and replace it if it is better
-    3. else put all still valid iterations into the queue for next iteration
-    4. go back to 0. until that list is empty
-
-NextInputs
-    0. check is shop is ended
-    1. check if known best can still be beaten
-    2. perform RAISE_CANCEL and NORMAL input
-    3. perform RAISE input and store result
-    4. if result of RAISE is not BUY, perform LOWER input
-
-
-
-*/
-
-void deepSolve(FullSolveEntry root, BestResult& best_result)
+void deepSolve(FullSolveEntry root, BestResult& best_result, int32_t max_depth)
 {
     if (stop) return;
 
     std::vector<FullSolveEntry> active_entries = { root };
     std::vector<FullSolveEntry> next_iteration;
 
-    for (uint32_t i = 0; i < SOLVE_DEPTH; i++)
+    int32_t currentDepth = root.getInputs().size();
+    int32_t iterations   = std::min(SOLVE_DEPTH, max_depth - currentDepth);
+
+    if (iterations == 0) return;
+
+    for (int32_t i = 0; i < iterations; i++)
     {
         for (auto& entry : active_entries)
         {
@@ -125,7 +103,7 @@ void deepSolve(FullSolveEntry root, BestResult& best_result)
     std::sort(active_entries.begin(), active_entries.end());
 
     for (auto& entry : active_entries)
-        deepSolve(entry, best_result);
+        deepSolve(entry, best_result, max_depth);
 }
 
 void heuristicSolve(uint32_t seed, uint32_t attempts, uint32_t advances, BestResult& best_result)
@@ -147,7 +125,8 @@ BestResult solve(uint32_t seed,
                  uint32_t maxAdvances        = 0,
                  uint32_t heuristic_attempts = 0,
                  uint32_t minimumScore       = IMPOSSIBLE_SCORE,
-                 Mode mode                   = Mode::COMBINED)
+                 Mode mode                   = Mode::COMBINED,
+                 int32_t depth               = DEFAULT_DEPTH)
 {
     BestResult result(minimumScore);
 
@@ -162,7 +141,7 @@ BestResult solve(uint32_t seed,
     if (mode == Mode::COMBINED || mode == Mode::DEEP)
     {
         for (uint32_t i = 0; i <= maxAdvances; i++)
-            threads.emplace_back(deepSolve, FullSolveEntry(seed, i), std::ref(result));
+            threads.emplace_back(deepSolve, FullSolveEntry(seed, i), std::ref(result), depth);
     }
 
     auto signalHandler = [](BestResult& result, int signal) { result.abort(); };
@@ -257,6 +236,11 @@ int main(int count, char* args[])
             po::value<uint32_t>()->default_value(DEFAULT_ATTEMPTS),
             "Number of attempts when using heuristic or combined solver.\n"
             "Rarely finds anything better after 10000000.");
+    options("depth,d",
+            po::value<uint32_t>()->default_value(DEFAULT_DEPTH),
+            "Maximum number of inputs when using deep or combined solver.\n"
+            "Higher values might find solutions with plenty CANCELs, that should be faster."
+            "On the flip side, it might increase run time significantly.");
 
     pos.add("seed", 1);
 
@@ -268,102 +252,25 @@ int main(int count, char* args[])
         std::cout << desc;
         return 1;
     }
-    /*if (!vm.count("seed"))
+    if (!vm.count("seed"))
     {
         std::cout << "You must specify a seed!\n";
         std::cout << desc;
         return 1;
-    }*/
+    }
 
-    uint32_t advances           = 0;           // vm["advances"].as<uint32_t>();
-    uint32_t heuristic_attempts = 0;           // vm["attempts"].as<uint32_t>();
-    uint32_t seed               = 3580817068U; // vm["seed"].as<uint32_t>();
+    uint32_t advances           = vm["advances"].as<uint32_t>();
+    uint32_t heuristic_attempts = vm["attempts"].as<uint32_t>();
+    uint32_t seed               = vm["seed"].as<uint32_t>();
     uint32_t score              = vm["score"].as<uint32_t>();
+    uint32_t depth              = vm["depth"].as<uint32_t>();
     Mode mode                   = convertMode(vm["mode"].as<std::string>());
 
     auto start      = std::chrono::high_resolution_clock::now();
-    BestResult best = solve(seed, advances, heuristic_attempts, score, mode);
+    BestResult best = solve(seed, advances, heuristic_attempts, score, mode, depth);
 
     std::cout << "finished" << std::endl;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
                                                                        start)
               << std::endl;
-
-    FullSolveEntry root(270672212, 0);
-    std::vector<Input> inputs;
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::LOWER);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE_CANCEL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::NORMAL);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-    // inputs.push_back(Input::RAISE);
-
-    // 1508351762
-    inputs.push_back(Input::RAISE_CANCEL);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE_CANCEL);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::NORMAL);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE_CANCEL);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE_CANCEL);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE);
-    inputs.push_back(Input::RAISE_CANCEL);
-    inputs.push_back(Input::RAISE);
-
-    // 3580817068U
-    //inputs.push_back(Input::RAISE_CANCEL);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE_CANCEL);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE_CANCEL);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE_CANCEL);
-    //inputs.push_back(Input::RAISE_CANCEL);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-    //inputs.push_back(Input::RAISE);
-
-    FullSolveEntry r(1508351762, 0);
-    for (Input i : inputs)
-        r = FullSolveEntry(r, i);
-
-    std::cout << r.getScore() << " \n";
-    // std::cout << step23.getScore() << " \n";
 }

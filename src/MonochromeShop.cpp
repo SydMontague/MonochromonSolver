@@ -90,17 +90,17 @@ constexpr std::array<std::array<uint32_t, 9>, 3> profits = {
     },
 };
 
-static uint32_t getLeaveChance(CustomerType type, uint32_t fails)
+constexpr uint32_t getLeaveChance(CustomerType type, uint32_t fails)
 {
     return leaveChances[static_cast<int>(type)][std::min(fails, 2U)];
 }
 
-static uint32_t getBuyChance(CustomerType customer, Item item, Offer offer)
+constexpr uint32_t getBuyChance(CustomerType customer, Item item, Offer offer)
 {
     return takeChances[static_cast<int>(customer)][static_cast<int>(item)][static_cast<int>(offer)];
 }
 
-static CustomerType getCustomerType(uint32_t roll)
+constexpr CustomerType getCustomerType(uint32_t roll)
 {
     if (roll <= 2)
         return CustomerType::GOBURIMON;
@@ -111,7 +111,8 @@ static CustomerType getCustomerType(uint32_t roll)
     else
         return CustomerType::MUCHOMON;
 }
-static Item getCustomerItem(CustomerType customer, uint32_t roll)
+
+constexpr Item getCustomerItem(CustomerType customer, uint32_t roll)
 {
     auto& chances = itemChances[static_cast<int>(customer)];
 
@@ -122,6 +123,7 @@ static Item getCustomerItem(CustomerType customer, uint32_t roll)
     else
         return Item::MEDICINE;
 }
+
 uint32_t getProfit(Item item, Offer offer) { return profits[static_cast<int>(item)][static_cast<int>(offer)]; }
 
 /*
@@ -149,7 +151,7 @@ InputResult MonochromeShop::input(Input input)
 
     switch (input)
     {
-        case Input::CATCH_UP: 
+        case Input::CATCH_UP:
         case Input::RAISE_CANCEL:
         case Input::LOWER_CANCEL: std::ignore = rng.next(); // ignore result and bounds, only the advance counts
         case Input::NORMAL_CANCEL:                          // fall-through
