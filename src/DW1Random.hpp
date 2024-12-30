@@ -33,5 +33,5 @@ public:
 
     uint32_t getState() { return state; }
 
-    uint32_t setState() { return state; }
+    void setState(uint32_t new_state) {  state = new_state; }
 };
