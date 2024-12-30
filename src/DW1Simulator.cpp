@@ -18,6 +18,17 @@
 
 std::atomic_bool stop = false;
 
+enum class Mode
+{
+    DEEP,
+    HEURISTIC,
+    COMBINED,
+};
+
+/*
+ * Enum -> String conversion helper
+ */
+
 std::string convertInput(Input input)
 {
     switch (input)
@@ -77,6 +88,19 @@ std::string convertItem(Item type)
     return "SOMETHING BROKE";
 }
 
+Mode convertMode(std::string input)
+{
+    if (input == "combined") return Mode::COMBINED;
+    if (input == "deep") return Mode::DEEP;
+    if (input == "heuristic") return Mode::HEURISTIC;
+
+    return Mode::COMBINED;
+}
+
+/*
+ * Solve logic
+ */
+
 void deepSolve(FullSolveEntry root, BestResult& best_result, int32_t max_depth)
 {
     if (stop) return;
@@ -114,13 +138,6 @@ void heuristicSolve(uint32_t seed, uint32_t attempts, uint32_t advances, BestRes
         HeuristicSolveEntry(seed, advances).next(best_result);
 }
 
-enum class Mode
-{
-    DEEP,
-    HEURISTIC,
-    COMBINED,
-};
-
 BestResult solve(uint32_t seed,
                  uint32_t maxAdvances        = 0,
                  uint32_t heuristic_attempts = 0,
@@ -144,9 +161,6 @@ BestResult solve(uint32_t seed,
             threads.emplace_back(deepSolve, FullSolveEntry(seed, i), std::ref(result), depth);
     }
 
-    auto signalHandler = [](BestResult& result, int signal) { result.abort(); };
-    auto a             = std::bind_front(signalHandler, result);
-
     std::for_each(threads.begin(), threads.end(), [](auto& a) { a.join(); });
 
     if (result.getBest().has_value())
@@ -164,28 +178,21 @@ BestResult solve(uint32_t seed,
         std::cout << "   Profit: " << result.getBest()->getShop().getProfits() << std::endl;
         std::cout << "    Score: " << result.getScore() << std::endl;
         std::cout << "     Seed: " << result.getBest()->getShop().getInitialSeed() << std::endl;
+        std::cout << "  Version: " << VERSION << std::endl;
     }
 
     return result;
 }
 
-Mode convertMode(std::string input)
+void abortHandler(int signal)
 {
-    if (input == "combined") return Mode::COMBINED;
-    if (input == "deep") return Mode::DEEP;
-    if (input == "heuristic") return Mode::HEURISTIC;
-
-    return Mode::COMBINED;
+    stop = true;
+    std::cout << "Aborted\n";
 }
 
 int main(int count, char* args[])
 {
-    std::signal(SIGINT,
-                [](int signal)
-                {
-                    stop = true;
-                    std::cout << "Aborted\n";
-                });
+    std::signal(SIGINT, abortHandler);
 
     constexpr uint32_t DEFAULT_ADVANCES = 4;
     constexpr uint32_t DEFAULT_ATTEMPTS = 5000000;

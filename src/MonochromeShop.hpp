@@ -1,7 +1,6 @@
 #pragma once
 
 #include "DW1Random.hpp"
-#include <array>
 
 enum class Input : uint8_t
 {

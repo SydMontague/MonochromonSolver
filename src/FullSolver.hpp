@@ -7,6 +7,7 @@
 #include <random>
 #include <vector>
 
+constexpr uint32_t VERSION                 = 2;
 constexpr uint32_t RAISE_COST              = 12;
 constexpr uint32_t NORMAL_COST             = 17;
 constexpr uint32_t LOWER_COST              = 17;
@@ -20,7 +21,6 @@ constexpr uint32_t GOBURIMON_WALK_COST     = 82;
 constexpr uint32_t GOTSUMON_WALK_COST      = 73;
 constexpr uint32_t MUCHOMON_WALK_COST      = 71;
 constexpr uint32_t WEEDMON_WALK_COST       = 65;
-
 
 constexpr int32_t SOLVE_DEPTH      = 10;
 constexpr uint32_t DEFAULT_DEPTH   = 30;
@@ -68,11 +68,8 @@ public:
     BestResult(const BestResult& other);
 
     void updateScore(ISolveEntry entry);
-
     uint32_t getScore() const;
     std::optional<ISolveEntry> getBest() const;
-
-    void abort();
 };
 
 struct HeuristicSolveEntry : public ISolveEntry
@@ -95,7 +92,6 @@ private:
 
 public:
     FullSolveEntry(uint32_t seed, uint32_t advances = 0);
-
     FullSolveEntry(const FullSolveEntry& previous, Input input);
 
     std::vector<FullSolveEntry> next(BestResult& best_result) const;

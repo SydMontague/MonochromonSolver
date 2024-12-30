@@ -4,7 +4,14 @@
 
 #include <iostream>
 
-constexpr int32_t ceilDiv(int32_t val1, int32_t val2) { return (val1 + val2 - 1) / val2; }
+constexpr int32_t ceilDiv(int32_t val1, int32_t val2)
+{
+    return (val1 + val2 - 1) / val2;
+}
+
+/*
+ * SolveSequenceResult implementation
+ */
 
 uint32_t SolveSequenceResult::getScore() const
 {
@@ -47,6 +54,10 @@ uint32_t SolveSequenceResult::getScore() const
     return score;
 }
 
+/*
+ * ISolveEntry implementation
+ */
+
 ISolveEntry::ISolveEntry(uint32_t seed, uint32_t advances)
     : shop(seed, advances)
 {
@@ -63,11 +74,34 @@ ISolveEntry::ISolveEntry(uint32_t seed, uint32_t advances)
     }
 }
 
-uint32_t ISolveEntry::getScore() const { return currentScore; };
-uint32_t ISolveEntry::getCustomerCount() const { return customerCount; }
-std::vector<SolveSequenceResult> ISolveEntry::getInputs() const { return inputs; }
-MonochromeShop ISolveEntry::getShop() const { return shop; }
-bool ISolveEntry::operator<(const ISolveEntry& other) const { return best_possible_score < other.best_possible_score; }
+uint32_t ISolveEntry::getScore() const
+{
+    return currentScore;
+}
+
+uint32_t ISolveEntry::getCustomerCount() const
+{
+    return customerCount;
+}
+
+std::vector<SolveSequenceResult> ISolveEntry::getInputs() const
+{
+    return inputs;
+}
+
+MonochromeShop ISolveEntry::getShop() const
+{
+    return shop;
+}
+
+bool ISolveEntry::operator<(const ISolveEntry& other) const
+{
+    return best_possible_score < other.best_possible_score;
+}
+
+/*
+ * FullSolveEntry implementation
+ */
 
 uint32_t FullSolveEntry::getBestPossibleScore() const
 {
@@ -148,31 +182,9 @@ std::vector<FullSolveEntry> FullSolveEntry::next(BestResult& best_result) const
     return entries;
 }
 
-BestResult::BestResult(uint32_t initScore)
-    : score(initScore)
-{
-}
-BestResult::BestResult(const BestResult& other)
-{
-    score = other.getScore();
-    node  = other.getBest();
-}
-
-void BestResult::updateScore(ISolveEntry entry)
-{
-    std::scoped_lock lock(nodeMutex);
-
-    uint32_t newScore = entry.getScore();
-    if (newScore >= score) return;
-
-    score = newScore;
-    node  = entry;
-    std::cout << "New best: " << score << "\n";
-}
-
-uint32_t BestResult::getScore() const { return score; }
-std::optional<ISolveEntry> BestResult::getBest() const { return node; }
-void BestResult::abort() { score = 0; }
+/*
+ * HeuristicSolveEntry implementation
+ */
 
 Input HeuristicSolveEntry::rollInput()
 {
@@ -215,4 +227,41 @@ void HeuristicSolveEntry::next(BestResult& best_result)
     }
 
     if (shop.getProfits() >= REQUIRED_PROFITS && currentScore < best_result.getScore()) best_result.updateScore(*this);
+}
+
+/*
+ * BestResult implementation
+ */
+
+BestResult::BestResult(uint32_t initScore)
+    : score(initScore)
+{
+}
+
+BestResult::BestResult(const BestResult& other)
+{
+    score = other.getScore();
+    node  = other.getBest();
+}
+
+void BestResult::updateScore(ISolveEntry entry)
+{
+    std::scoped_lock lock(nodeMutex);
+
+    uint32_t newScore = entry.getScore();
+    if (newScore >= score) return;
+
+    score = newScore;
+    node  = entry;
+    std::cout << "New best: " << score << "\n";
+}
+
+uint32_t BestResult::getScore() const
+{
+    return score;
+}
+
+std::optional<ISolveEntry> BestResult::getBest() const
+{
+    return node;
 }

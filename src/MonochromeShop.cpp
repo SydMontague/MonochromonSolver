@@ -124,7 +124,10 @@ constexpr Item getCustomerItem(CustomerType customer, uint32_t roll)
         return Item::MEDICINE;
 }
 
-uint32_t getProfit(Item item, Offer offer) { return profits[static_cast<int>(item)][static_cast<int>(offer)]; }
+uint32_t getProfit(Item item, Offer offer)
+{
+    return profits[static_cast<int>(item)][static_cast<int>(offer)];
+}
 
 /*
  * MonochromeShop Public Methods
@@ -194,15 +197,30 @@ InputResult MonochromeShop::input(Input input)
     // if you got here, something went wrong
 }
 
-const Customer& MonochromeShop::getCustomer() const { return currentCustomer; }
+const Customer& MonochromeShop::getCustomer() const
+{
+    return currentCustomer;
+}
 
-uint32_t MonochromeShop::getProfits() const { return profit; }
+uint32_t MonochromeShop::getProfits() const
+{
+    return profit;
+}
 
-uint32_t MonochromeShop::getRemainingCustomers() const { return remainingCustomers; }
+uint32_t MonochromeShop::getRemainingCustomers() const
+{
+    return remainingCustomers;
+}
 
-bool MonochromeShop::hasEnded() const { return ended; }
+bool MonochromeShop::hasEnded() const
+{
+    return ended;
+}
 
-uint32_t MonochromeShop::getInitialSeed() const { return initial_seed; }
+uint32_t MonochromeShop::getInitialSeed() const
+{
+    return initial_seed;
+}
 
 /*
  * MonochromeShop Private Methods
