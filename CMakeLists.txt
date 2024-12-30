@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.27)
-project(DW1Simulator VERSION 1.2.0)
+project(MonochromonSolver VERSION 1.0.0)
 
 include(cmake/CPM.cmake)
 
@@ -17,19 +17,18 @@ CPMAddPackage(
 )
 
 # --- Target ---
-set(SOURCE_FILES ${SOURCE_FILES} "src/DW1Simulator.cpp" "src/MonochromeShop.cpp" "src/FullSolver.cpp" "src/MonochromeShop.hpp" "src/FullSolver.hpp")
+set(SOURCE_FILES ${SOURCE_FILES} "src/MonochromonSolver.cpp" "src/MonochromeShop.cpp" "src/FullSolver.cpp" "src/MonochromeShop.hpp" "src/FullSolver.hpp")
 
-add_executable(DW1Simulator ${SOURCE_FILES})
-target_link_libraries(DW1Simulator PRIVATE Boost::program_options)
+add_executable(MonochromonSolver ${SOURCE_FILES})
+target_link_libraries(MonochromonSolver PRIVATE Boost::program_options)
 
-set_target_properties(DW1Simulator PROPERTIES CXX_STANDARD 20)
-set_target_properties(DW1Simulator PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-#set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
+set_target_properties(MonochromonSolver PROPERTIES CXX_STANDARD 20)
+set_target_properties(MonochromonSolver PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-target_compile_definitions(DW1Simulator PRIVATE PROJECT_NAME="${PROJECT_NAME}")
-target_compile_definitions(DW1Simulator PRIVATE PROJECT_VERSION="v${PROJECT_VERSION}")
-target_compile_definitions(DW1Simulator PRIVATE PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
-target_compile_definitions(DW1Simulator PRIVATE PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR})
-target_compile_definitions(DW1Simulator PRIVATE PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
+target_compile_definitions(MonochromonSolver PRIVATE PROJECT_NAME="${PROJECT_NAME}")
+target_compile_definitions(MonochromonSolver PRIVATE PROJECT_VERSION="v${PROJECT_VERSION}")
+target_compile_definitions(MonochromonSolver PRIVATE PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+target_compile_definitions(MonochromonSolver PRIVATE PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+target_compile_definitions(MonochromonSolver PRIVATE PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
-install(TARGETS DW1Simulator)
+install(TARGETS MonochromonSolver)

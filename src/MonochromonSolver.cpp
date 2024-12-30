@@ -198,18 +198,11 @@ int main(int count, char* args[])
     constexpr uint32_t DEFAULT_ATTEMPTS = 5000000;
     constexpr auto DEFAULT_MODE         = "combined";
 
-    // DW1Random random(845126); // absolute dogshit
-    // DW1Random random(3580817068U); // best known
-    // DW1Random random(1508351762);
-    // DW1Random random(4063756419);
-    // DW1Random random(2393675181);
-    // DW1Random random(1462898466);
-
     namespace po = boost::program_options;
     po::variables_map vm;
     po::positional_options_description pos;
-    po::options_description desc("Usage: DW1Simulator <seed> [options]\n"
-                                 "Use ctrl+C to abort.",
+    po::options_description desc("Usage: MonochromonSolver <seed> [options]\n"
+                                 "Use ctrl+C to abort",
                                  120);
 
     auto options = desc.add_options();
@@ -246,7 +239,7 @@ int main(int count, char* args[])
     options("depth,d",
             po::value<uint32_t>()->default_value(DEFAULT_DEPTH),
             "Maximum number of inputs when using deep or combined solver.\n"
-            "Higher values might find solutions with plenty CANCELs, that should be faster."
+            "Higher values might find solutions with plenty CANCELs, that should be faster.\n"
             "On the flip side, it might increase run time significantly.");
 
     pos.add("seed", 1);
